@@ -6,7 +6,8 @@ import numpy as np
 from Boid import Boid
 from HerdManager import HerdManager
 from Particle import Goal, Obstacle, TYPE_GOAL
-from params import WIDTH, HEIGHT, FRAME_RATE, BOIDS_NUMBER, OBSTACLE_NUMBER, GOAL_NUMBER, TRACK_COLLISION
+from params import WIDTH, HEIGHT, FRAME_RATE, BOIDS_NUMBER, OBSTACLE_NUMBER, GOAL_NUMBER, TRACK_COLLISION, USER_GOAL
+import atexit
 
 
 
@@ -25,6 +26,7 @@ Boid.max_width = WIDTH
 def run():
     global FRAME_RATE
     herd = HerdManager(WIDTH, HEIGHT)
+    atexit.register(herd.print_stats)
     colors = dict()
 
     pygame.init()
@@ -32,13 +34,13 @@ def run():
     myfont = pygame.font.SysFont("monospace", 15)
     clock = pygame.time.Clock()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    goal = Goal(0)
+    goal = Goal(USER_GOAL)
     obstacle = Obstacle(0)
     colors[goal.get_key()] = np.array((255, 0, 0))
     colors[obstacle.get_key()] = np.zeros(3)
     boid_id = 0
     obstacle_id = 1
-    goal_id = 1
+    goal_id = 0
     for i in range(OBSTACLE_NUMBER):
         new_obstacle = Obstacle(obstacle_id, pos=random_pos(WIDTH, HEIGHT))
         herd.add_element(new_obstacle)
@@ -51,7 +53,7 @@ def run():
         new_boid = rand_boid_generation(boid_id)
         herd.add_element(new_boid)
         boid_id += 1
-        new_boid.set_goal(herd.elements[Boid.gen_key(TYPE_GOAL, random.randint(1, GOAL_NUMBER))])
+        new_boid.set_goal(herd.elements[Boid.gen_key(TYPE_GOAL, random.randint(0, GOAL_NUMBER - 1))])
     while True:
     # check for quit events
         for event in pygame.event.get():
@@ -64,7 +66,7 @@ def run():
                     new_boid = rand_boid_generation(boid_id)
                     herd.add_element(new_boid)
                     boid_id += 1
-                    new_boid.set_goal(herd.elements[Boid.gen_key(TYPE_GOAL, random.randint(1, GOAL_NUMBER))])
+                    new_boid.set_goal(herd.elements[Boid.gen_key(TYPE_GOAL, random.randint(0, GOAL_NUMBER - 1))])
                 if (event.unicode) == 'm':
                     FRAME_RATE -= 1
                 if (event.unicode) == 'n':
@@ -72,6 +74,7 @@ def run():
                 if (event.unicode) == ' ':
                     herd.collisions = []
                 if (event.key) == 112: # p key for pause
+                    herd.print_stats(save=False)
                     playing = False
                 if (event.key) == 27: # exit on esc
                     pygame.quit()
@@ -103,8 +106,8 @@ def run():
             pygame.draw.lines(screen, (255, 0, 0), False, [element.get_pos(), element.get_pos() + element.speed], 2)
             pygame.draw.circle(screen, element.color, element.get_pos(), element.size, 0)
             if element.type == TYPE_GOAL:
-                goal_id = myfont.render(str(element.identity), 2, (0, 0, 0))
-                screen.blit(goal_id, element.get_pos() - [element.size / 2, element.size / 2])
+                goal_id_text = myfont.render(str(element.identity), 2, (0, 0, 0))
+                screen.blit(goal_id_text, element.get_pos() - [element.size / 2, element.size / 2])
 
         if len(herd.collisions) > 0:
             for collison in herd.collisions:

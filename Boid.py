@@ -2,7 +2,7 @@
 from math import cos, sin, sqrt, pi, atan
 import numpy as np
 import random
-from params import GOAL_NUMBER
+from params import GOAL_NUMBER, USER_GOAL
 from Particle import Particle, TYPE_BOID, TYPE_GOAL
 
 class Boid(Particle):
@@ -68,7 +68,7 @@ class Boid(Particle):
 
             dist = self.distance(element)
             if element.type == TYPE_GOAL:               #Attraction to goal
-                if element.identity == 0:
+                if element.identity == USER_GOAL:
                     goal_attraction = ((element.pos - self.pos) / 10) if 3 * dist < Boid.v_max else ((element.pos - self.pos) * Boid.v_max / dist)
                 elif element.identity == self.goal_id and not np.any(goal_attraction):
                     goal_attraction = ((element.pos - self.pos) / 10) if 3 * dist < Boid.v_max else ((element.pos - self.pos) * Boid.v_max / dist)
@@ -77,7 +77,7 @@ class Boid(Particle):
                         if self.last_goal_id is not None:
                             herd.goal_reached(self.last_goal_id, self.goal_id, self.timer)
                         self.timer = 0
-                        self.last_goal_id, self.goal_id = (self.goal_id, (self.goal_id + 1) if self.goal_id + 1 < GOAL_NUMBER + 1 else 1)
+                        self.last_goal_id, self.goal_id = (self.goal_id, random.randint(0, GOAL_NUMBER-1)) # random goal random.randint(0, GOAL_NUMBER-1)
                         self.set_goal(herd.elements[self.gen_key(TYPE_GOAL, self.goal_id)])
                 continue
             if dist < (element.size + self.size) / 2:
