@@ -11,6 +11,7 @@ class HerdManager():
         self.elements = dict()
         self.collision_counter = 0
         self.collisions = []
+        self.goal_counter = dict()
 
     def update(self):
         "Update all the area to get next iteration"
@@ -36,6 +37,20 @@ class HerdManager():
         "Add new element to herd manager"
         self.area[self.elements[key].pos, :] = [0,0]
         del self.elements[key]
+
+    def goal_reached(self, last_id, new_id, time):
+        "Give access to stats of the herd"
+        pattern = str(last_id)+ " " + str(new_id)
+        if pattern not in self.goal_counter:
+            self.goal_counter[pattern] = {'mean':0, 'var':0, 'min':0, 'max':0, 'values':np.empty((1,), dtype='int32')}
+        goal_pat = self.goal_counter[pattern]
+        goal_pat['values'] = np.append(goal_pat['values'], time)
+        goal_pat['mean'] = np.mean(goal_pat['values'])
+        goal_pat['var'] = np.var(goal_pat['values'])
+        goal_pat['min'] = np.min(goal_pat['values'])
+        goal_pat['max'] = np.max(goal_pat['values'])
+        print(self.goal_counter)
+
 
 if __name__ == '__main__':
     herd = HerdManager(800, 800)

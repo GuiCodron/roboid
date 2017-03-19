@@ -102,15 +102,18 @@ def run():
                 pygame.draw.lines(screen, col, False, [element.get_pos(), element.get_pos() + element.vectors[i].astype('int32')], 2)
             pygame.draw.lines(screen, (255, 0, 0), False, [element.get_pos(), element.get_pos() + element.speed], 2)
             pygame.draw.circle(screen, element.color, element.get_pos(), element.size, 0)
+            if element.type == TYPE_GOAL:
+                goal_id = myfont.render(str(element.identity), 2, (0, 0, 0))
+                screen.blit(goal_id, element.get_pos() - [element.size / 2, element.size / 2])
 
         if len(herd.collisions) > 0:
             for collison in herd.collisions:
                 pygame.draw.circle(screen, (255,0,0), collison, 15, 3)
         if playing and (len(herd.collisions) == 0 or not TRACK_COLLISION): # stop update if there was a collision and we are tracking it
             herd.update()
-        label = myfont.render(str(int(clock.get_fps())) + " fps", 2, (0,0,0))
+        label = myfont.render(str(int(clock.get_fps())) + " fps", 2, (0, 0, 0))
         screen.blit(label, (WIDTH - 80, 2))
-        collision = myfont.render(str(int(herd.collision_counter)) + " collisions", 2, (0,0,0))
+        collision = myfont.render(str(int(herd.collision_counter)) + " collisions", 2, (0, 0, 0))
         screen.blit(collision, (20, 2))
         pygame.display.update()
         msElapsed = clock.tick(FRAME_RATE)

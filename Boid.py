@@ -23,7 +23,9 @@ class Boid(Particle):
         self.speed = speed.astype('int32')
         self.acc = acc.astype('int32')
         self.goal_id = goal
+        self.last_goal_id = None
         self.color = color or np.random.randint(255, size=3)
+        self.timer = 0
 
     def set_acc(self, acc):
         "Set acceleration"
@@ -45,6 +47,7 @@ class Boid(Particle):
         self.pos = np.mod((self.pos + self.speed), (self.max_width, self.max_height))
 
     def set_goal(self, goal):
+        "Set new goal for the boid"
         self.goal_id = goal.identity
         self.color = goal.color
 
@@ -57,6 +60,7 @@ class Boid(Particle):
         attraction_count = 0
         close_count = 0
         rejection = np.zeros(2)
+        self.timer += 1
         width, height, depth = herd.area.shape
         for key, element in herd.elements.items():
             if element == self:
@@ -70,7 +74,11 @@ class Boid(Particle):
                     goal_attraction = ((element.pos - self.pos) / 10) if 3 * dist < Boid.v_max else ((element.pos - self.pos) * Boid.v_max / dist)
                     if dist <= self.size + element.size:
                         #print("goal_reached")
-                        self.set_goal(herd.elements[self.gen_key(TYPE_GOAL, random.randint(1, GOAL_NUMBER))])
+                        if self.last_goal_id is not None:
+                            herd.goal_reached(self.last_goal_id, self.goal_id, self.timer)
+                        self.timer = 0
+                        self.last_goal_id, self.goal_id = (self.goal_id, (self.goal_id + 1) if self.goal_id + 1 < GOAL_NUMBER + 1 else 1)
+                        self.set_goal(herd.elements[self.gen_key(TYPE_GOAL, self.goal_id)])
                 continue
             if dist < (element.size + self.size) / 2:
                 herd.collision_counter += 1
