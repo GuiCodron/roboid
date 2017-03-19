@@ -20,6 +20,7 @@ class Particle:
         self.acc = acc
         self.size = size
         self.color = color
+        self.vectors = np.zeros(4)
 
     def update(self):
         "Upate function required for all types of elements"

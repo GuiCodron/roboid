@@ -10,8 +10,8 @@ class Boid(Particle):
     rejection_radius = (0, 60)
     confort_radius = (40, 100)
     #attraction_radius = (100, 200)
-    v_max = 20
-    acc_max = 10
+    v_max = 15
+    acc_max = 15
     max_width = 100
     max_height = 100
 
@@ -36,7 +36,7 @@ class Boid(Particle):
 
     def update(self):
         "update boids position and speed"
-        new_speed = self.speed + self.acc
+        new_speed = 0.3 * self.speed + self.acc
         norm = sqrt(np.sum(new_speed ** 2))
         if norm > self.v_max:
             self.speed = new_speed * self.v_max / norm
@@ -65,16 +65,17 @@ class Boid(Particle):
             dist = self.distance(element)
             if element.type == TYPE_GOAL:               #Attraction to goal
                 if element.identity == 0:
-                    goal_attraction = (element.pos - self.pos) / 10
+                    goal_attraction = ((element.pos - self.pos) / 10) if 3 * dist < Boid.v_max else ((element.pos - self.pos) * Boid.v_max / dist)
                 elif element.identity == self.goal_id and not np.any(goal_attraction):
-                    goal_attraction = (element.pos - self.pos) / 10
+                    goal_attraction = ((element.pos - self.pos) / 10) if 3 * dist < Boid.v_max else ((element.pos - self.pos) * Boid.v_max / dist)
                     if dist <= self.size + element.size:
                         #print("goal_reached")
                         self.set_goal(herd.elements[self.gen_key(TYPE_GOAL, random.randint(1, GOAL_NUMBER))])
                 continue
             if dist < (element.size + self.size) / 2:
                 herd.collision_counter += 1
-                print("Number of collision : ", herd.collision_counter)
+                herd.collisions.append(self.get_pos())
+                print("Number of collision : ", herd.collision_counter / 2)
             if dist <= element.attraction_radius[1]:    #process attaction to other entity
                 if element.attraction_radius[0] <= dist:
                     attraction += element.pos - self.pos
@@ -82,7 +83,7 @@ class Boid(Particle):
                 velocity_matching += element.speed      #velocity matching if close to other
                 close_count += 1
             if element.rejection_radius[0] <= dist <= element.rejection_radius[1]:#process rejection to other entity
-                rejection -= (element.rejection_radius[1] - dist) * (element.pos - self.pos) / dist if dist != 0 else np.random.randint(160, size=2)
+                rejection -= (element.rejection_radius[1] - dist) * (element.pos - self.pos) / dist / 2 if dist != 0 else np.random.randint(160, size=2)
         if attraction_count != 0:
             attraction /= attraction_count * 100
         if close_count != 0:
@@ -90,7 +91,8 @@ class Boid(Particle):
         #print(boid.identity, 'number of neighboor: ', attraction_count, 'attraction', attraction, 'velocity_matching', velocity_matching, 'rejection', rejection)
         #print(velocity_matching + attraction + rejection)
 
-        return self.set_acc(velocity_matching + attraction + rejection + goal_attraction)
+        self.vectors = np.array((velocity_matching, attraction, rejection, goal_attraction))
+        return self.set_acc(velocity_matching + attraction + rejection + goal_attraction + np.random.random_sample((2,)) * Boid.v_max / 10)
 
 
     def get_acceleration_cone(self):

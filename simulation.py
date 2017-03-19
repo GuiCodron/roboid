@@ -6,12 +6,18 @@ import numpy as np
 from Boid import Boid
 from HerdManager import HerdManager
 from Particle import Goal, Obstacle, TYPE_GOAL
-from params import WIDTH, HEIGHT, FRAME_RATE, BOIDS_NUMBER, OBSTACLE_NUMBER, GOAL_NUMBER
+from params import WIDTH, HEIGHT, FRAME_RATE, BOIDS_NUMBER, OBSTACLE_NUMBER, GOAL_NUMBER, TRACK_COLLISION
 
 
 
 def rand_boid_generation(id):
-    return Boid(id, pos=np.random.randint(800, size=2), speed=np.random.randint(-Boid.v_max, high=Boid.v_max, size=2), acc=np.random.randint(-Boid.acc_max, high=Boid.acc_max, size=2))
+    "Create a boid at a random place with random color, acceleration and speed"
+    pos = np.array([WIDTH * 2/3, HEIGHT * 2/3]) * np.random.random_sample((2,)) + np.array([WIDTH * 1/6, HEIGHT * 1/6])
+    return Boid(id, pos=random_pos(WIDTH, HEIGHT), speed=np.random.randint(-Boid.v_max, high=Boid.v_max, size=2), acc=np.random.randint(-Boid.acc_max, high=Boid.acc_max, size=2))
+
+def random_pos(width, height):
+    "generate random position in screen"
+    return np.array([width, height]) * np.random.random_sample((2,))
 
 Boid.max_height = HEIGHT
 Boid.max_width = WIDTH
@@ -22,6 +28,7 @@ def run():
     colors = dict()
 
     pygame.init()
+    playing = True
     myfont = pygame.font.SysFont("monospace", 15)
     clock = pygame.time.Clock()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -33,11 +40,11 @@ def run():
     obstacle_id = 1
     goal_id = 1
     for i in range(OBSTACLE_NUMBER):
-        new_obstacle = Obstacle(obstacle_id, pos=np.random.randint(WIDTH, size=2))
+        new_obstacle = Obstacle(obstacle_id, pos=random_pos(WIDTH, HEIGHT))
         herd.add_element(new_obstacle)
         obstacle_id += 1
     for i in range(GOAL_NUMBER):
-        new_goal = Goal(goal_id, pos=np.random.randint(WIDTH, size=2))
+        new_goal = Goal(goal_id, pos=random_pos(WIDTH, HEIGHT))
         herd.add_element(new_goal)
         goal_id += 1
     for i in range(BOIDS_NUMBER):
@@ -62,6 +69,17 @@ def run():
                     FRAME_RATE -= 1
                 if (event.unicode) == 'n':
                     FRAME_RATE += 1
+                if (event.unicode) == ' ':
+                    herd.collisions = []
+                if (event.key) == 112: # p key for pause
+                    playing = False
+                if (event.key) == 27: # exit on esc
+                    pygame.quit()
+                    sys.exit()
+            if event.type == pygame.KEYUP:
+                if (event.key) == 112: #p key for pause
+                    playing = True
+
             if event.type == pygame.MOUSEMOTION:
                 goal.pos = np.array(event.pos)
                 obstacle.pos = np.array(event.pos)
@@ -78,15 +96,22 @@ def run():
                     herd.remove_element(obstacle.get_key())
 
         screen.fill((255, 255, 255))
-        for key, element in herd.elements.items():
+        for key, element in herd.elements.items():                          #display elements on screen
+            for i in range(element.vectors.shape[0]):
+                col = (255, 255, 255) if i <= 1 else ((0, 0, 0) if i == 2 else (0, 255, 0))
+                pygame.draw.lines(screen, col, False, [element.get_pos(), element.get_pos() + element.vectors[i].astype('int32')], 2)
             pygame.draw.lines(screen, (255, 0, 0), False, [element.get_pos(), element.get_pos() + element.speed], 2)
             pygame.draw.circle(screen, element.color, element.get_pos(), element.size, 0)
-            #pygame.draw.circle(screen, (255, 0, 0), element.get_pos(), element.rejection_radius[1], 1)
-            #acc = np.random.randint(200, size=2) - 100
-            #boid.set_acc(acc)
-        herd.update()
-        label = myfont.render(str(int(clock.get_fps())) + " fps", 1, (0,0,0))
-        screen.blit(label, (720, 2))
+
+        if len(herd.collisions) > 0:
+            for collison in herd.collisions:
+                pygame.draw.circle(screen, (255,0,0), collison, 15, 3)
+        if playing and (len(herd.collisions) == 0 or not TRACK_COLLISION): # stop update if there was a collision and we are tracking it
+            herd.update()
+        label = myfont.render(str(int(clock.get_fps())) + " fps", 2, (0,0,0))
+        screen.blit(label, (WIDTH - 80, 2))
+        collision = myfont.render(str(int(herd.collision_counter)) + " collisions", 2, (0,0,0))
+        screen.blit(collision, (20, 2))
         pygame.display.update()
         msElapsed = clock.tick(FRAME_RATE)
 
