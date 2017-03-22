@@ -26,6 +26,7 @@ class Boid(Particle):
         self.last_goal_id = None
         self.color = color or np.random.randint(255, size=3)
         self.timer = 0
+        self.collision_count = 0
 
     def set_acc(self, acc):
         "Set acceleration"
@@ -75,15 +76,16 @@ class Boid(Particle):
                     if dist <= self.size + element.size:
                         #print("goal_reached")
                         if self.last_goal_id is not None:
-                            herd.goal_reached(self.last_goal_id, self.goal_id, self.timer)
+                            herd.goal_reached(self.last_goal_id, self.goal_id, self.timer, self.collision_count)
                         self.timer = 0
-                        self.last_goal_id, self.goal_id = (self.goal_id, random.randint(0, GOAL_NUMBER-1)) # random goal random.randint(0, GOAL_NUMBER-1)
+                        self.collision_count = 0
+                        self.last_goal_id, self.goal_id = (self.goal_id, random.randint(0, GOAL_NUMBER-1)) # new goal choosen at random
                         self.set_goal(herd.elements[self.gen_key(TYPE_GOAL, self.goal_id)])
                 continue
             if dist < (element.size + self.size) / 2:
-                herd.collision_counter += 1
+                herd.collision_count += 1
                 herd.collisions.append(self.get_pos())
-                print("Number of collision : ", herd.collision_counter / 2)
+                self.collision_count += 1
             if dist <= element.attraction_radius[1]:    #process attaction to other entity
                 if element.attraction_radius[0] <= dist:
                     attraction += element.pos - self.pos

@@ -1,6 +1,7 @@
 "Simulation File"
 import sys
 import random
+from math import floor, ceil, sqrt
 import pygame
 import numpy as np
 from Boid import Boid
@@ -17,16 +18,18 @@ def rand_boid_generation(id):
     return Boid(id, pos=random_pos(WIDTH, HEIGHT), speed=np.random.randint(-Boid.v_max, high=Boid.v_max, size=2), acc=np.random.randint(-Boid.acc_max, high=Boid.acc_max, size=2))
 
 def random_pos(width, height):
-    "generate random position in screen"
+    "generate random position on screen"
     return np.array([width, height]) * np.random.random_sample((2,))
 
 Boid.max_height = HEIGHT
 Boid.max_width = WIDTH
 
 def run():
+    "Run full simulation"
     global FRAME_RATE
+    global BOIDS_NUMBER
     herd = HerdManager(WIDTH, HEIGHT)
-    atexit.register(herd.print_stats)
+    #atexit.register(herd.print_stats)
     colors = dict()
 
     pygame.init()
@@ -45,8 +48,11 @@ def run():
         new_obstacle = Obstacle(obstacle_id, pos=random_pos(WIDTH, HEIGHT))
         herd.add_element(new_obstacle)
         obstacle_id += 1
+    w_nb_r, h_nb_r = (sqrt(GOAL_NUMBER * WIDTH / HEIGHT), sqrt(GOAL_NUMBER * HEIGHT / WIDTH))
+    w_nb, h_nb = (ceil(w_nb_r), round(h_nb_r)) if WIDTH >= HEIGHT else (round(w_nb_r), ceil(h_nb_r))
+    w, h = (WIDTH / w_nb / 2, HEIGHT / h_nb / 2)
     for i in range(GOAL_NUMBER):
-        new_goal = Goal(goal_id, pos=random_pos(WIDTH, HEIGHT))
+        new_goal = Goal(goal_id, pos=np.array([w + w * 2 * (i % w_nb), h + h * 2 * int(i / w_nb)]))
         herd.add_element(new_goal)
         goal_id += 1
     for i in range(BOIDS_NUMBER):
@@ -65,6 +71,7 @@ def run():
                 if (event.unicode) == 'a':
                     new_boid = rand_boid_generation(boid_id)
                     herd.add_element(new_boid)
+                    BOIDS_NUMBER += 1
                     boid_id += 1
                     new_boid.set_goal(herd.elements[Boid.gen_key(TYPE_GOAL, random.randint(0, GOAL_NUMBER - 1))])
                 if (event.unicode) == 'm':
@@ -73,6 +80,8 @@ def run():
                     FRAME_RATE += 1
                 if (event.unicode) == ' ':
                     herd.collisions = []
+                if (event.unicode) == 's':
+                    herd.print_stats(save=True)
                 if (event.key) == 112: # p key for pause
                     herd.print_stats(save=False)
                     playing = False
@@ -99,7 +108,8 @@ def run():
                     herd.remove_element(obstacle.get_key())
 
         screen.fill((255, 255, 255))
-        for key, element in herd.elements.items():                          #display elements on screen
+        #display elements on screen
+        for key, element in herd.elements.items():
             for i in range(element.vectors.shape[0]):
                 col = (255, 255, 255) if i <= 1 else ((0, 0, 0) if i == 2 else (0, 255, 0))
                 pygame.draw.lines(screen, col, False, [element.get_pos(), element.get_pos() + element.vectors[i].astype('int32')], 2)
@@ -112,12 +122,17 @@ def run():
         if len(herd.collisions) > 0:
             for collison in herd.collisions:
                 pygame.draw.circle(screen, (255,0,0), collison, 15, 3)
-        if playing and (len(herd.collisions) == 0 or not TRACK_COLLISION): # stop update if there was a collision and we are tracking it
+        # stop update if there was a collision and we are tracking it
+        if playing and (len(herd.collisions) == 0 or not TRACK_COLLISION): 
             herd.update()
         label = myfont.render(str(int(clock.get_fps())) + " fps", 2, (0, 0, 0))
         screen.blit(label, (WIDTH - 80, 2))
-        collision = myfont.render(str(int(herd.collision_counter)) + " collisions", 2, (0, 0, 0))
+        collision = myfont.render("Collisions : "+str(int(herd.collision_count)), 2, (0, 0, 0))
         screen.blit(collision, (20, 2))
+        goals_nb = myfont.render("Nombre de boids : " + str(GOAL_NUMBER), 2, (0, 0, 0))
+        screen.blit(goals_nb, (20, 22))
+        boids_nb = myfont.render("Nombre de d'objectifs : " + str(BOIDS_NUMBER), 2, (0, 0, 0))
+        screen.blit(boids_nb, (20, 42))
         pygame.display.update()
         msElapsed = clock.tick(FRAME_RATE)
 
