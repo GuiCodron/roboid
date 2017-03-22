@@ -3,7 +3,6 @@
 import random
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 import time
 import os
 
@@ -27,7 +26,7 @@ class bot:
         if(len(parametres)>0):
             self.sigma=parametres[0]
         else:
-            self.sigma=0.5
+            self.sigma=0.3
         if(len(parametres)>1):
             self.RrD=random.gauss(parametres[1],parametres[1]*self.sigma)
         else:
@@ -48,14 +47,12 @@ class bot:
             self.vmaxG=random.gauss(parametres[5],parametres[5]*self.sigma)
         else:
             self.vmaxG=random.gauss(572,572*self.sigma)
-        print(
-            self.RrD, self.RrG, self.Rb, self.vmaxD, self.vmaxG
-        )
+        
         self.posx=0
         self.posy=0
         self.angle=0
         
-        self.alpha=0.5
+        self.alpha=0.1
         self.coeffangle=1
         self.koho_size=40
         if(len(parametres)<2):
@@ -154,18 +151,11 @@ class bot:
         plt.show()
 
     def printmap(self):
-        fig=plt.figure()
-        ax1=fig.add_subplot(121)
-        ax2 = fig.add_subplot(122, projection='3d')
-        ax1.axis('equal')
-        ax1.plot(np.ravel(self.koho[:,:,0]), np.ravel(self.koho[:,:,1]), 'b,')
-        ax2.plot_wireframe(np.ravel(self.koho[:,:,3]),np.ravel(self.koho[:,:,4]),np.ravel(self.koho[:,:,2]))
-        plt.show(block=True)
-        #f, axarr = plt.subplots(2)
-        #axarr[0].axis('equal')
-        #axarr[0].plot(np.ravel(self.koho[:,:,0]), np.ravel(self.koho[:,:,1]), 'b,')
-        #axarr[1].plot(np.ravel(self.koho[:,:,3]-self.koho[:,:,4]),np.ravel(self.koho[:,:,2]),'r')
-        #plt.show()
+        f, axarr = plt.subplots(2)
+        axarr[0].axis('equal')
+        axarr[0].plot(np.ravel(self.koho[:,:,0]), np.ravel(self.koho[:,:,1]), 'b,')
+        axarr[1].plot(np.ravel(self.koho[:,:,3]-self.koho[:,:,4]),np.ravel(self.koho[:,:,2]),'r')
+        plt.show()
         #plt.axis('equal')
         #plt.plot(np.ravel(self.koho[:,:,0]), np.ravel(self.koho[:,:,1]), 'b,')
     
@@ -242,43 +232,24 @@ class bot:
         xinit=self.posx
         yinit=self.posy
         angleinit=self.angle
-        self.alpha*=0.99999
+        self.alpha*=0.99
         self.move(command[0], command[1], reset=False,record=True)
-        xlearning=self.posx-xinit
-        ylearning=self.posy-yinit
-        anglelearning=self.angle-angleinit
-        anglelearning=anglelearning%(2*np.pi)
-        if(anglelearning>np.pi):
-            anglelearning-=2*np.pi
-        commandDlearning=command[0]
-        commandGlearning=command[1]
-        realxlearning=xlearning*np.cos(angleinit)+ylearning*np.sin(angleinit)
-        realylearning=ylearning*np.cos(angleinit)-xlearning*np.sin(angleinit)
-        #if(xlearning<0):
-        #    xlearning=-xlearning
-        #    commandDlearning=-commandDlearning
-        #    commandGlearning=-commandGlearning
-        #    if(anglelearning>0):
-        #        anglelearning=np.pi-anglelearning
-        #    else:
-        #        anglelearning=-np.pi-anglelearning
-        if(realxlearning>=0.05):
-            mypoint=np.array([realxlearning,realylearning,anglelearning,commandDlearning,commandGlearning])
-            delta=mypoint-self.koho
-            delta2=delta*delta
-            dist=np.sum(delta2, 2)
-            indice=np.argmin(dist)
-            indice2=indice%self.koho_size
-            indice1=indice//self.koho_size
-            self.koho[indice1][indice2]+=delta[indice1][indice2]*self.alpha
-            if(indice1>0):
-                self.koho[indice1-1][indice2]+=delta[indice1-1][indice2]*self.alpha/2
-            if(indice2>0):
-                self.koho[indice1][indice2-1]+=delta[indice1][indice2-1]*self.alpha/2
-            if(indice1<self.koho_size-1):
-                self.koho[indice1+1][indice2]+=delta[indice1+1][indice2]*self.alpha/2
-            if(indice2<self.koho_size-1):
-                self.koho[indice1][indice2+1]+=delta[indice1][indice2+1]*self.alpha/2
+        mypoint=np.array([self.posx-xinit,self.posy-yinit,self.angle-angleinit,command[0],command[1]])
+        delta=mypoint-self.koho
+        delta2=delta*delta
+        dist=np.sum(delta2, 2)
+        indice=np.argmin(dist)
+        indice2=indice%self.koho_size
+        indice1=indice//self.koho_size
+        self.koho[indice1][indice2]+=delta[indice1][indice2]*self.alpha
+        if(indice1>0):
+            self.koho[indice1-1][indice2]+=delta[indice1-1][indice2]*self.alpha/2
+        if(indice2>0):
+            self.koho[indice1][indice2-1]+=delta[indice1][indice2-1]*self.alpha/2
+        if(indice1<self.koho_size-1):
+            self.koho[indice1+1][indice2]+=delta[indice1+1][indice2]*self.alpha/2
+        if(indice2<self.koho_size-1):
+            self.koho[indice1][indice2+1]+=delta[indice1][indice2+1]*self.alpha/2
         return (self.posx,self.posy,self.angle)
     
     
@@ -292,17 +263,6 @@ class bot:
         plt.axis('equal')
         return plt.plot(linex,liney,'r',self.tracex,self.tracey,'b')
         
-    def reset(self):
-        self.posx=0
-        self.posy=0
-        self.angle=0
-        self.perf.clear()
-        self.perfR.clear()
-        self.tracex.clear()
-        self.tracey.clear()
-
-
-
 if __name__ == '__main__':
     mode=2
 
@@ -311,28 +271,25 @@ if __name__ == '__main__':
         mybot=bot(0)
         #mybot.movetest(mybot.vmax,mybot.vmax)
         #mybot.restore()
-        mybot.learning(1)
+        mybot.learning(1000000)
         mybot.save()
         mybot.printmap()
     if(mode==2):
-        mybot=bot()
         while(True):
-            for i in range(1000):
-                mybot.reset()
-                angle=random.uniform(0,2*np.pi)
-                dist=random.uniform(2,5)
-                targetx=dist*np.cos(angle)
-                targety=dist*np.sin(angle)
-                start = time.time()
-                #mybot.movetest(mybot.vmax,mybot.vmax)
-                for i in range(20):
-                    mybot.movebot(targetx, targety)
-                end = time.time()
+            angle=random.uniform(0,2*np.pi)
+            dist=random.uniform(90,130)
+            targetx=dist*np.cos(angle)
+            targety=dist*np.sin(angle)
+            print("target: ",targetx,targety)
+            mybot=bot(0)
+            mybot.restore()
+            start = time.time()
+            #mybot.movetest(mybot.vmax,mybot.vmax)
+            for i in range(200):
+                mybot.movebot(targetx, targety)
+            end = time.time()
             print("command time: ",end - start)
-            mybot.disptraj(targetx, targety,0.5)
+            p = mybot.disptraj(targetx, targety,5)
             plt.waitforbuttonpress()
-            plt.close()
-            mybot.printmap()
-            
             plt.close()
     #plt.waitforbuttonpress()

@@ -76,37 +76,43 @@ class Boid(Particle):
         rejection = np.zeros(2)
         self.timer += 1
         width, height, depth = herd.area.shape
-        for key, element in herd.elements.items():
-            if element == self:
+        for el_type, elements in herd.elements.items():
+            #cas du goal
+            if el_type == TYPE_GOAL:               #Attraction to goal
+                if USER_GOAL in elements:
+                    element = elements[USER_GOAL]
+                elif self.goal_id in elements:
+                    element = elements[self.goal_id]
+                else:
+                    continue
+                dist = self.distance(element)
+                goal_attraction = ((element.pos - self.pos) / 10) if 3 * dist < Boid.v_max else ((element.pos - self.pos) * Boid.v_max / dist)
+                if dist <= self.size + element.size and self.goal_id == element.identity:
+                    #print("goal_reached")
+                    if self.last_goal_id is not None:
+                        herd.goal_reached(self.last_goal_id, self.goal_id, self.timer, self.collision_count)
+                    self.timer = 0
+                    self.collision_count = 0
+                    self.last_goal_id, self.goal_id = (self.goal_id, random.randint(0, len(elements)-1)) # new goal choosen at random
+                    self.set_goal(elements[self.goal_id])
                 continue
+            for element in elements.values():
+                if element == self:
+                    continue
 
-            dist = self.distance(element)
-            if element.type == TYPE_GOAL:               #Attraction to goal
-                if element.identity == USER_GOAL:
-                    goal_attraction = ((element.pos - self.pos) / 10) if 3 * dist < Boid.v_max else ((element.pos - self.pos) * Boid.v_max / dist)
-                elif element.identity == self.goal_id and not np.any(goal_attraction):
-                    goal_attraction = ((element.pos - self.pos) / 10) if 3 * dist < Boid.v_max else ((element.pos - self.pos) * Boid.v_max / dist)
-                    if dist <= self.size + element.size:
-                        #print("goal_reached")
-                        if self.last_goal_id is not None:
-                            herd.goal_reached(self.last_goal_id, self.goal_id, self.timer, self.collision_count)
-                        self.timer = 0
-                        self.collision_count = 0
-                        self.last_goal_id, self.goal_id = (self.goal_id, random.randint(0, GOAL_NUMBER-1)) # new goal choosen at random
-                        self.set_goal(herd.elements[self.gen_key(TYPE_GOAL, self.goal_id)])
-                continue
-            if dist < (element.size + self.size) / 2:
-                herd.collision_count += 1
-                herd.collisions.append(self.get_pos())
-                self.collision_count += 1
-            if dist <= element.attraction_radius[1]:    #process attaction to other entity
-                if element.attraction_radius[0] <= dist:
-                    attraction += element.pos - self.pos
-                    attraction_count += 1
-                velocity_matching += element.speed      #velocity matching if close to other
-                close_count += 1
-            if element.rejection_radius[0] <= dist <= element.rejection_radius[1]:#process rejection to other entity
-                rejection -= (element.rejection_radius[1] - dist) * (element.pos - self.pos) / dist / 2 if dist != 0 else np.random.randint(160, size=2)
+                dist = self.distance(element)
+                if dist < (element.size + self.size) / 2:
+                    herd.collision_count += 1
+                    herd.collisions.append(self.get_pos())
+                    self.collision_count += 1
+                if dist <= element.attraction_radius[1]:    #process attaction to other entity
+                    if element.attraction_radius[0] <= dist:
+                        attraction += element.pos - self.pos
+                        attraction_count += 1
+                    velocity_matching += element.speed      #velocity matching if close to other
+                    close_count += 1
+                if element.rejection_radius[0] <= dist <= element.rejection_radius[1]:#process rejection to other entity
+                    rejection -= (element.rejection_radius[1] - dist) * (element.pos - self.pos) / dist / 2 if dist != 0 else np.random.randint(160, size=2)
         if attraction_count != 0:
             attraction /= attraction_count * 100
         if close_count != 0:

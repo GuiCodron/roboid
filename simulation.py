@@ -36,18 +36,20 @@ def run():
     pygame.init()
     mouse_pos = np.zeros(2)
     playing = True
+    radius_display = False
     myfont = pygame.font.SysFont("monospace", 15)
     clock = pygame.time.Clock()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     goal = Goal(USER_GOAL)
-    obstacle = Obstacle(0)
+    obstacle = Obstacle(USER_GOAL)
     colors[goal.get_key()] = np.array((255, 0, 0))
     colors[obstacle.get_key()] = np.zeros(3)
     boid_id = 0
-    obstacle_id = 1
+    obstacle_id = 0
     goal_id = 0
     for i in range(OBSTACLE_NUMBER):
-        pos = np.array([5 * WIDTH / 12 +  WIDTH / 3 / OBSTACLE_NUMBER * i, HEIGHT / 2])
+        #pos = np.array([5 * WIDTH / 12 +  WIDTH / 3 / OBSTACLE_NUMBER * i, HEIGHT / 2])
+        pos = np.array(random_pos(WIDTH, HEIGHT))
         new_obstacle = Obstacle(obstacle_id, pos=pos)
         herd.add_element(new_obstacle)
         obstacle_id += 1
@@ -62,7 +64,7 @@ def run():
         new_boid = rand_boid_generation(boid_id)
         herd.add_element(new_boid)
         boid_id += 1
-        new_boid.set_goal(herd.elements[Boid.gen_key(TYPE_GOAL, random.randint(0, GOAL_NUMBER - 1))])
+        new_boid.set_goal(herd.elements[TYPE_GOAL][random.randint(0, len(herd.elements[TYPE_GOAL]) - 1)])
     while True:
     # check for quit events
         for event in pygame.event.get():
@@ -76,19 +78,19 @@ def run():
                     herd.add_element(new_boid)
                     BOIDS_NUMBER += 1
                     boid_id += 1
-                    new_boid.set_goal(herd.elements[Boid.gen_key(TYPE_GOAL, random.randint(0, GOAL_NUMBER - 1))])
+                    new_boid.set_goal(herd.elements[TYPE_GOAL][random.randint(0, len(herd.elements[TYPE_GOAL]) - 1)])
                 if (event.unicode) == 'm':
                     FRAME_RATE -= 1
                 if (event.unicode) == 'n':
                     FRAME_RATE += 1
                 if (event.unicode) == 'o':
-                    obstacle_id += 1
                     herd.add_element(Obstacle(obstacle_id, pos=mouse_pos))
+                    obstacle_id += 1
+                if (event.unicode) == 't':
+                    radius_display = not radius_display
                 if (event.unicode) == 'g':
-                    goal_id += 1
-                    GOAL_NUMBER += 1
-                    print(GOAL_NUMBER)
                     herd.add_element(Goal(goal_id, pos=mouse_pos))
+                    goal_id += 1
                 if (event.unicode) == ' ':
                     herd.collisions = []
                 if (event.unicode) == 's':
@@ -115,27 +117,29 @@ def run():
                     herd.add_element(obstacle)
             if event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:
-                    herd.remove_element(goal.get_key())
+                    herd.remove_element(TYPE_GOAL, USER_GOAL)
                 if event.button == 3:
-                    herd.remove_element(obstacle.get_key())
+                    herd.remove_element(obstacle.type, USER_GOAL)
 
         screen.fill((255, 255, 255))
         #display elements on screen
-        for key, element in herd.elements.items():
-            if element.type == TYPE_BOID:
-                for i in range(element.vectors.shape[0]):
-                    col = (255, 255, 255) if i <= 1 else ((0, 0, 0) if i == 2 else (0, 255, 0))
-                    pygame.draw.lines(screen, col, False, [element.get_pos(), element.get_pos() + element.vectors[i].astype('int32')], 2)
+        for el_list in herd.elements.values():
+            for element in el_list.values():
+                if element.type == TYPE_BOID:
+                    for i in range(element.vectors.shape[0]):
+                        col = (255, 255, 255) if i <= 1 else ((0, 0, 0) if i == 2 else (0, 255, 0))
+                        pygame.draw.lines(screen, col, False, [element.get_pos(), element.get_pos() + element.vectors[i].astype('int32')], 2)
 
-                pygame.draw.lines(screen, (255, 0, 0), False, [element.get_pos(),
-                                                               element.get_pos() + element.speed], 2)
-            
-            pygame.draw.circle(screen, element.color, element.get_pos(), element.size, 0)
-            pygame.draw.circle(screen, element.color, element.get_pos(), element.rejection_radius[1], min(element.rejection_radius[1], 2))
-            if element.type == TYPE_GOAL:
+                    pygame.draw.lines(screen, (255, 0, 0), False, [element.get_pos(),
+                                                                   element.get_pos() + element.speed], 2)
+                
                 pygame.draw.circle(screen, element.color, element.get_pos(), element.size, 0)
-                goal_id_text = myfont.render(str(element.identity), 2, (0, 0, 0))
-                screen.blit(goal_id_text, element.get_pos() - [element.size / 2, element.size / 2])
+                if radius_display:
+                    pygame.draw.circle(screen, element.color, element.get_pos(), element.rejection_radius[1], min(element.rejection_radius[1], 1))
+                if element.type == TYPE_GOAL:
+                    pygame.draw.circle(screen, element.color, element.get_pos(), element.size, 0)
+                    goal_id_text = myfont.render(str(element.identity), 2, (0, 0, 0))
+                    screen.blit(goal_id_text, element.get_pos() - [element.size / 2, element.size / 2])
 
 
         if len(herd.collisions) > 0:
