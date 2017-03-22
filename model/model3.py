@@ -4,6 +4,7 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+import os
 
 #    liste des fonctions utiles:
 #    bot(params) : constructeur de la classe, met simplement bot() si tu veux des bots aleatoires ou bot(0) pour des bots standard.
@@ -160,9 +161,11 @@ class bot:
     
     
     def save(self):
-        np.save("C:\\temp\\mydata.npy", self.koho)
+        directory = os.path.dirname(os.path.abspath(__file__))
+        np.save(directory + "/mydata.npy", self.koho)
     def restore(self):
-        self.koho=np.load("C:\\temp\\mydata.npy")
+        directory = os.path.dirname(os.path.abspath(__file__))
+        self.koho=np.load(directory + "/mydata.npy")
         
     def movetoward(self,targetx,targety):
         disttarget=np.sqrt(np.square(targetx)+np.square(targety))
@@ -260,33 +263,33 @@ class bot:
         plt.axis('equal')
         return plt.plot(linex,liney,'r',self.tracex,self.tracey,'b')
         
+if __name__ == '__main__':
+    mode=2
 
-mode=2
 
-
-if(mode==1):
-    mybot=bot(0)
-    #mybot.movetest(mybot.vmax,mybot.vmax)
-    #mybot.restore()
-    mybot.learning(1000000)
-    mybot.save()
-    mybot.printmap()
-if(mode==2):
-    while(True):
-        angle=random.uniform(0,2*np.pi)
-        dist=random.uniform(90,130)
-        targetx=dist*np.cos(angle)
-        targety=dist*np.sin(angle)
-        print("target: ",targetx,targety)
+    if(mode==1):
         mybot=bot(0)
-        mybot.restore()
-        start = time.time()
         #mybot.movetest(mybot.vmax,mybot.vmax)
-        for i in range(200):
-            mybot.movebot(targetx, targety)
-        end = time.time()
-        print("command time: ",end - start)
-        p = mybot.disptraj(targetx, targety,5)
-        plt.waitforbuttonpress()
-        plt.close()
-#plt.waitforbuttonpress()
+        #mybot.restore()
+        mybot.learning(1000000)
+        mybot.save()
+        mybot.printmap()
+    if(mode==2):
+        while(True):
+            angle=random.uniform(0,2*np.pi)
+            dist=random.uniform(90,130)
+            targetx=dist*np.cos(angle)
+            targety=dist*np.sin(angle)
+            print("target: ",targetx,targety)
+            mybot=bot(0)
+            mybot.restore()
+            start = time.time()
+            #mybot.movetest(mybot.vmax,mybot.vmax)
+            for i in range(200):
+                mybot.movebot(targetx, targety)
+            end = time.time()
+            print("command time: ",end - start)
+            p = mybot.disptraj(targetx, targety,5)
+            plt.waitforbuttonpress()
+            plt.close()
+    #plt.waitforbuttonpress()

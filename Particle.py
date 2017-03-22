@@ -1,11 +1,16 @@
 import math
 import numpy as np
-from params import WIDTH, HEIGHT
+from params import WIDTH, HEIGHT, OBSTACLE_REJECTION
 
 TYPE_PARTICLE = 0
 TYPE_BOID = 1
 TYPE_GOAL = 2
 TYPE_OBSTACLE = 3
+
+def distance(point1, point2):
+    "Distance between 2 points"
+    return math.sqrt(np.sum((point1 - point2) ** 2))
+
 class Particle:
     "General class to describe a Particle of the map"
     rejection_radius = (0, 1)
@@ -32,8 +37,7 @@ class Particle:
 
     def distance(self, element):
         "Distance from self to element"
-        diff = element.pos - self.pos
-        return math.sqrt(np.sum(diff ** 2))
+        return distance(element.pos, self.pos)
         #enabled this piece of code to make the map like a tore
         if diff[0] > WIDTH / 2:
             diff[0] = WIDTH - element.pos[0] - self.pos[0]
@@ -62,7 +66,7 @@ class Goal(Particle):
 
 class Obstacle(Particle):
     "Symbolize obstacle on the map"
-    rejection_radius = (0, 100)
+    rejection_radius = (0, OBSTACLE_REJECTION)
 
     def __init__(self, identity, pos=np.zeros(2), size=10, color=np.array((0, 0, 0))):
         Particle.__init__(self, identity, pos, size=size, color=color)

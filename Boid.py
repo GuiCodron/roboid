@@ -2,16 +2,17 @@
 from math import cos, sin, sqrt, pi, atan
 import numpy as np
 import random
-from params import GOAL_NUMBER, USER_GOAL
+from params import GOAL_NUMBER, USER_GOAL, V_MAX, ACC_MAX, MULT_SPEED
 from Particle import Particle, TYPE_BOID, TYPE_GOAL
+from model.model3 import bot
 
 class Boid(Particle):
     "Boid: particle that move according to the hord around it"
-    rejection_radius = (0, 60)
+    rejection_radius = (0, V_MAX * 4)
     confort_radius = (40, 100)
     #attraction_radius = (100, 200)
-    v_max = 15
-    acc_max = 15
+    v_max = V_MAX
+    acc_max = ACC_MAX
     max_width = 100
     max_height = 100
 
@@ -27,9 +28,15 @@ class Boid(Particle):
         self.color = color or np.random.randint(255, size=3)
         self.timer = 0
         self.collision_count = 0
+        self.bot = bot()
+        self.bot.posx = self.pos[0] / self.v_max * 0.74
+        self.bot.posy = self.pos[1] / self.v_max * 0.74
 
     def set_acc(self, acc):
         "Set acceleration"
+        self.acc = (self.pos + acc) / MULT_SPEED
+        return acc
+        #old_code
         norm = sqrt(np.sum(acc ** 2))
         if norm > self.acc_max:
             self.acc = (acc * self.acc_max) / norm
@@ -39,6 +46,12 @@ class Boid(Particle):
 
     def update(self):
         "update boids position and speed"
+        old_pos = np.array([self.bot.posx, self.bot.posy])
+        self.bot.movebot(self.acc[0], self.acc[1])
+        self.speed = (np.array([self.bot.posx, self.bot.posy]) - old_pos) * MULT_SPEED
+        self.pos = np.array([self.bot.posx, self.bot.posy]) * MULT_SPEED
+        return
+        #old code
         new_speed = 0.3 * self.speed + self.acc
         norm = sqrt(np.sum(new_speed ** 2))
         if norm > self.v_max:

@@ -38,7 +38,7 @@ class HerdManager():
         self.collisions = []
         for key, element in self.elements.items():
             element.update()
-            new_area[element.get_pos(), :] = [element.identity, element.type]
+            new_area[element.get_pos() % [WIDTH, HEIGHT], :] = [element.identity, element.type]
 
         for key, element in self.elements.items():
             element.reaction(self)
